@@ -38,10 +38,10 @@ resource "azurerm_virtual_network" "hub-spoke-vnet" {
   }
 }
 resource "azurerm_subnet" "spoke-snet-rg" {
-  name                 = "vnet-${var.prefix}-spoke-weu"
+  name                 = "snet-${var.prefix}-spoke--weu"
   resource_group_name  = azurerm_resource_group.spoke-rg.name
   virtual_network_name = azurerm_virtual_network.hub-spoke-vnet.name
-  address_prefixes     = ["10.0.0.1/16"]
+  address_prefixes     = ["10.1.0.0/16"]
 }
 resource "azurerm_network_security_group" "nsg-spoke" {
   name                = "nsg-${var.prefix}-jvn-spoke-weu"
@@ -75,23 +75,18 @@ resource "azurerm_network_security_group" "nsg-hub" {
     destination_address_prefix = "*"
   }
 }
-
-
-resource "azurerm_subnet_network_security_group_association" "nsg_association1" {
-  subnet_id                 = azurerm_subnet.spoke-snet-rg.id 
-  network_security_group_id = azurerm_network_security_group.nsg-spoke.id
-}
-##Peerings
-resource "azurerm_virtual_network_peering" "hub2spoke-peer" {
-  name                      = "hub2spoke"
-  resource_group_name       = azurerm_resource_group.hub-rg.name
-  virtual_network_name      = azurerm_virtual_network.hub-vnet.name
-  remote_virtual_network_id = azurerm_virtual_network.hub-vnet.id
-}
-
 resource "azurerm_virtual_network_peering" "spoke2hub-peer" {
   name                      = "spoke2hub"
   resource_group_name       = azurerm_resource_group.spoke-rg.name
   virtual_network_name      = azurerm_virtual_network.hub-spoke-vnet.name
-  remote_virtual_network_id = azurerm_virtual_network.hub-spoke-vnet.id
+  remote_virtual_network_id = azurerm_virtual_network.hub-vnet.id
+  
 }
+resource "azurerm_virtual_network_peering" "hub2spoke-peer" {
+  name                      = "hub2spoke"
+  resource_group_name       = azurerm_resource_group.hub-rg.name
+  virtual_network_name      = azurerm_virtual_network.hub-vnet.name
+  remote_virtual_network_id = azurerm_virtual_network.hub-spoke-vnet.id
+  
+}
+
