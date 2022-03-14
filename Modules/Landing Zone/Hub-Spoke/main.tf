@@ -284,7 +284,7 @@ resource "azurerm_virtual_network_peering" "peer-hub-2-prod" {
   remote_virtual_network_id = azurerm_virtual_network.prod-vnet.id 
 }
 resource "azurerm_virtual_network_peering" "peer-prod-2-hub" {
-  name                      = "peer-hub-2-prod"
+  name                      = "peer-prod-2-hub"
   resource_group_name       = azurerm_resource_group.vnet-prod-rg.name
   virtual_network_name      = azurerm_virtual_network.prod-vnet.name
   remote_virtual_network_id = azurerm_virtual_network.hub-vnet.id 
@@ -297,7 +297,7 @@ resource "azurerm_virtual_network_peering" "peer-hub-2-dev" {
   allow_forwarded_traffic = true
 }
 resource "azurerm_virtual_network_peering" "peer-dev-2-hub" {
-  name                      = "peer-hub-2-dev"
+  name                      = "peer-dev-2-hub"
   resource_group_name       = azurerm_resource_group.vnet-dev-rg.name
   virtual_network_name      = azurerm_virtual_network.dev-vnet.name
   remote_virtual_network_id = azurerm_virtual_network.hub-vnet.id 
@@ -311,7 +311,7 @@ resource "azurerm_virtual_network_peering" "peer-hub-2-tst" {
   allow_forwarded_traffic = true
 }
 resource "azurerm_virtual_network_peering" "peer-tst-2-hub" {
-  name                      = "peer-hub-2-tst"
+  name                      = "peer-tst-2-hub"
   resource_group_name       = azurerm_resource_group.vnet-tst-rg.name
   virtual_network_name      = azurerm_virtual_network.tst-vnet.name
   remote_virtual_network_id = azurerm_virtual_network.hub-vnet.id 
