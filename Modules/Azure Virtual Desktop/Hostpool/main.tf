@@ -1,64 +1,69 @@
-terraform {
-  
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "=2.97.0"
-      
-    }
-  }
+ provider "azurerm" {
+  features {} 
+}
+
+provider "azurerm" {
+  features {}
+  alias = "hub"
+  subscription_id = var.subscription_id_mgmt
 }
 provider "azurerm" {
   features {}
   alias = "prod"
-  subscription_id = "5601b367-9101-4a22-9af4-541dee535215"
-  
+  subscription_id = var.subscription_id_prd
 }
-
 provider "azurerm" {
   features {}
+  alias = "identity"
+  subscription_id = var.subscription_id_identity
+}
+provider "azurerm" {
+  features {}
+  alias = "avd"
+  subscription_id = var.subscription_id_avd
+}
+
+data "azurerm_resource_group" "rg-backplane" {
+  provider = azurerm.hub
+    name = "rg-${var.env}-${var.prefix}-${var.solution}-backplane-01"
+}
+data "azurerm_resource_group" "rg-sessionhosts" {
+  provider = azurerm.hub
+    name = "rg-${var.env}-${var.prefix}-${var.solution}-session-hosts-01"
+}
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=2.99.0"
+    }
+  }
 }
 
 data "azurerm_log_analytics_workspace" "law" {
-  provider = azurerm.prod
+  provider = azurerm.hub
     name = "law-hub-jvn-01"
-    resource_group_name = "rg-hub-jvn-law-01"
+    resource_group_name = "rg-hub-${var.prefix}-management-01"
 }
 
-##Create AVD Backplane Resource Group
-resource "azurerm_resource_group" "rg-backplane" {
-  name     = "rg-prod-${var.prefix}-avd-backplane-01"
-  location = var.location
-  tags = {
-    "Location" = "Weu"
-    "Costcenter" = "IT"
-  }
-  
-}
-##Create AVD Session Hosts resource Group
-resource "azurerm_resource_group" "rg-sessionhosts" {
-  name     = "rg-prod-${var.prefix}-avd-session-hosts-01"
-  location = var.location
-   tags = {
-    "Location" = "Weu"
-    "Costcenter" = "IT"
-  }
-}
+
+
 #Create WVD workspace
 resource "azurerm_virtual_desktop_workspace" "ws" {
-  name                = "ws-prod-${var.prefix}-avd-weu-01"
-  resource_group_name = azurerm_resource_group.rg-backplane.name
-  location            = azurerm_resource_group.rg-backplane.location
+  provider = azurerm.hub
+  name                = "ws-${var.env}-${var.prefix}-${var.solution}-we-01"
+  resource_group_name = data.azurerm_resource_group.rg-backplane.name
+  location            = data.azurerm_resource_group.rg-backplane.location
   friendly_name       = "avd Workspace"
   description         = "avd workspace"
   tags = {
-    "Location" = "Weu"
+    "Location" = "We"
     "Costcenter" = "IT"
   }
 }
 resource "azurerm_monitor_diagnostic_setting" "avd-ws-logs" {
-  provider = azurerm.prod
-  name = "diag-prod-jvn-avd-ws"
+  provider = azurerm.hub
+  name = "diag-ws-${var.solution}${var.prefix}-avd"
   target_resource_id =  azurerm_virtual_desktop_workspace.ws.id 
   log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
   depends_on = [azurerm_virtual_desktop_workspace.ws]
@@ -95,36 +100,38 @@ resource "azurerm_monitor_diagnostic_setting" "avd-ws-logs" {
     }
   }
 }
-
+  
 resource "azurerm_virtual_desktop_host_pool_registration_info" "avd_token" {
+  provider = azurerm.hub
   hostpool_id = azurerm_virtual_desktop_host_pool.hp.id
   expiration_date = var.rfc3339
-  
 }
 # Create AVD host pool
 resource "azurerm_virtual_desktop_host_pool" "hp" {
-  resource_group_name      = azurerm_resource_group.rg-backplane.name
-  name                     = "hp-prod-${var.prefix}-avd-weu-01"
-  location                 = azurerm_resource_group.rg-backplane.location
+  provider = azurerm.hub
+  resource_group_name      = data.azurerm_resource_group.rg-backplane.name
+  name                     = "hp-${var.env}-${var.prefix}-${var.solution}-we-01"
+  location                 = data.azurerm_resource_group.rg-backplane.location
   validate_environment     = true
-  custom_rdp_properties    = "audiocapturemode:i:1;audiomode:i:0;"
+  custom_rdp_properties    = "audiocapturemode:i:1;audiomode:i:0;targetisaadjoined:i:1;"
   type                     = "Pooled"
-  maximum_sessions_allowed = 2
+  maximum_sessions_allowed = 10
   load_balancer_type       = "BreadthFirst"
   friendly_name            = "AVD HostPool"
   start_vm_on_connect = true
   tags = {
-    "Location" = "Weu"
+    "Location" = "We"
     "Costcenter" = "IT"
   }
 }
 # Create AVD DAG
 resource "azurerm_virtual_desktop_application_group" "fd" {
-  resource_group_name = azurerm_resource_group.rg-backplane.name
+  provider = azurerm.hub
+  resource_group_name = data.azurerm_resource_group.rg-backplane.name
   host_pool_id        = azurerm_virtual_desktop_host_pool.hp.id
-  location            = azurerm_resource_group.rg-backplane.location
+  location            = data.azurerm_resource_group.rg-backplane.location
   type                = "Desktop"
-  name                = "fd-prod-${var.prefix}-avd-weu-01"
+  name                = "fd-prod-${var.prefix}-avd-we-01"
   friendly_name       = "AVD Full Desktop"
   description         = "AVD Full Desktop"
   depends_on          = [azurerm_virtual_desktop_host_pool.hp]
@@ -132,13 +139,14 @@ resource "azurerm_virtual_desktop_application_group" "fd" {
 
 # Associate Workspace and DAG
 resource "azurerm_virtual_desktop_workspace_application_group_association" "fd" {
+  provider = azurerm.hub
   application_group_id = azurerm_virtual_desktop_application_group.fd.id
   workspace_id         = azurerm_virtual_desktop_workspace.ws.id
 }
 
 resource "azurerm_monitor_diagnostic_setting" "avd-logs" {
-  provider = azurerm.prod
-    name = "diag-prod-jvn-avd-hp"
+  provider = azurerm.hub
+    name = "diag-hp-${var.solution}${var.prefix}-avd"
     target_resource_id = azurerm_virtual_desktop_host_pool.hp.id
     log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
     depends_on = [azurerm_virtual_desktop_host_pool.hp]
@@ -208,8 +216,8 @@ resource "azurerm_monitor_diagnostic_setting" "avd-logs" {
   }
 }
 resource "azurerm_monitor_diagnostic_setting" "fd-logs" {
-  provider = azurerm.prod
-  name = "diag-prod-jvn-avd-fd"
+  provider = azurerm.hub
+  name = "diag-fd-${var.solution}${var.prefix}-avd"
   target_resource_id = azurerm_virtual_desktop_application_group.fd.id 
   log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id 
   depends_on = [
