@@ -1,27 +1,66 @@
 provider "azurerm" {
-  features {}
-}
-resource "azurerm_resource_group" "law" {
-  name     = "rg-${var.prefix}-law-mgmt"
-  location = var.location
+  features {} 
 }
 
+provider "azurerm" {
+  features {}
+  alias = "hub"
+  subscription_id = var.subscription_id_mgmt
+}
+provider "azurerm" {
+  features {}
+  alias = "prod"
+  subscription_id = var.subscription_id_prd
+}
+provider "azurerm" {
+  features {}
+  alias = "identity"
+  subscription_id = var.subscription_id_identity
+}
+provider "azurerm" {
+  features {}
+  alias = "avd"
+  subscription_id = var.subscription_id_avd
+}
+
+data "azurerm_resource_group" "rg-hub-mgmt" {
+  provider = azurerm.hub
+  name = "rg-${var.env}-${var.prefix}-management-01"
+}
+locals {
+  solution_name = toset([
+    "Security","SecurityInsights","AgentHealthAssessment","AzureActivity","SecurityCenterFree","DnsAnalytics","ADAssessment","AntiMalware","ServiceMap","SQLAssessment", "SQLAdvancedThreatProtection", "AzureAutomation", "Containers", "ChangeTracking", "Updates", "VMInsights"
+  ])
+}
+
+
 resource "azurerm_log_analytics_workspace" "law" {
-  name                = "law-${var.prefix}-01"
-  location            = azurerm_resource_group.law.location
-  resource_group_name = azurerm_resource_group.law.name
+  provider = azurerm.hub
+  name                = "law-${var.env}-${var.prefix}-01"
+  location            = data.azurerm_resource_group.rg-hub-mgmt.location
+  resource_group_name = data.azurerm_resource_group.rg-hub-mgmt.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+   tags = {
+    "Critical"    = "Yes"
+    "Solution"    = "Logs"
+    "Costcenter"  = "It"
+    "Environment" = "Hub"
+  }
 }
-resource "azurerm_log_analytics_solution" "container" {
-  solution_name         = "ContainerInsights"
-  location              = azurerm_resource_group.law.location
-  resource_group_name   = azurerm_resource_group.law.name
+resource "azurerm_log_analytics_solution" "solutions" {
+  provider = azurerm.hub
+  for_each = local.solution_name
+  solution_name         = each.key
+  location              = data.azurerm_resource_group.rg-hub-mgmt.location
+  resource_group_name   = data.azurerm_resource_group.rg-hub-mgmt.name
   workspace_resource_id = azurerm_log_analytics_workspace.law.id
   workspace_name        = azurerm_log_analytics_workspace.law.name
 
   plan {
     publisher = "Microsoft"
-    product   = "OMSGallery/ContainerInsights"
+    product   = "OMSGallery/${each.key}"
   }
 }
+
+
