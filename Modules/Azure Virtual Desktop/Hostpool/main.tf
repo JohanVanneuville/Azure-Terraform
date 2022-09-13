@@ -119,6 +119,19 @@ resource "azurerm_virtual_desktop_host_pool" "hp" {
   load_balancer_type       = "BreadthFirst"
   friendly_name            = "AVD HostPool"
   start_vm_on_connect = true
+  scheduled_agent_updates {
+    enabled = true
+    schedule {
+      day_of_week = "Wednesday"
+      hour_of_day = 10
+    }
+  use_session_host_timezone = true
+    
+     schedule {
+      day_of_week = "Friday"
+      hour_of_day = 10
+    } 
+  }
   tags = {
     "Location" = "We"
     "Costcenter" = "IT"
