@@ -31,7 +31,12 @@ provider "azurerm" {
   alias = "avd"
   subscription_id = var.subscription_id_avd
 }
-
+data "azurerm_log_analytics_workspace" "law" {
+  provider = azurerm.hub
+  name = "law-${var.hub}-${var.prefix}-01"
+  resource_group_name = "rg-${var.hub}-${var.prefix}-management-01"
+  
+}
 ## Create a Resource Group for Storage
 resource "azurerm_resource_group" "avd-rg" {
   provider = azurerm.prod
@@ -73,6 +78,60 @@ resource "azurerm_storage_account" "avd-sa" {
     "StorageTier" = "ZRS"
   }
 }
+resource "azurerm_monitor_diagnostic_setting" "st-avd-diag-file" {
+  name = "diag-st-${var.solution}-jvn"
+  target_resource_id = "${azurerm_storage_account.avd-sa.id}/fileservices/default"
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
+  depends_on = [
+    azurerm_storage_share.fslogix
+  ]
+  log {
+    category = "StorageRead"
+    enabled  = true
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  log {
+    category = "StorageWrite"
+    enabled = true
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  log {
+    category = "StorageDelete"
+    enabled = true
+
+    retention_policy {
+      enabled = true
+    }
+  } 
+  metric {
+    category = "Transaction"
+
+    retention_policy {
+      enabled = true
+    }
+  }
+}
+resource "azurerm_monitor_diagnostic_setting" "st-avd-diag" {
+  name = "diag-st-${var.solution}-jvn"
+  target_resource_id = azurerm_storage_account.avd-sa.id
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
+  depends_on = [
+    azurerm_storage_share.fslogix
+  ]
+  metric {
+    category = "Transaction"
+
+    retention_policy {
+      enabled = true
+    }
+  }
+}
 resource "azurerm_storage_account" "avd-sa-dr" {
   provider = azurerm.prod
   name                     = "st${var.env}${var.prefix}${var.solution}02"
@@ -88,6 +147,60 @@ resource "azurerm_storage_account" "avd-sa-dr" {
     "location" = "northeurope"
     "environment" = "DR"
     "StorageTier" = "ZRS"
+  }
+}
+resource "azurerm_monitor_diagnostic_setting" "st-avd-dr-diag" {
+  name = "diag-st-${var.solution}-jvn"
+  target_resource_id = azurerm_storage_account.avd-sa-dr.id
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
+  depends_on = [
+    azurerm_storage_share.fslogix
+  ]
+  metric {
+    category = "Transaction"
+
+    retention_policy {
+      enabled = true
+    }
+  }
+}
+resource "azurerm_monitor_diagnostic_setting" "st-avd-dr-file-diag" {
+  name = "diag-st-${var.solution}-jvn"
+  target_resource_id = "${azurerm_storage_account.avd-sa-dr.id}/fileservices/default"
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
+  depends_on = [
+    azurerm_storage_share.fslogix-dr
+  ]
+  log {
+    category = "StorageRead"
+    enabled  = true
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  log {
+    category = "StorageWrite"
+    enabled = true
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  log {
+    category = "StorageDelete"
+    enabled = true
+
+    retention_policy {
+      enabled = true
+    }
+  } 
+  metric {
+    category = "Transaction"
+
+    retention_policy {
+      enabled = true
+    }
   }
 }
 
