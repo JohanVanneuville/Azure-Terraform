@@ -49,6 +49,6 @@ locals {
 }
 resource "azuread_group" "avd-groups" {
   for_each = local.display_name
-  display_name = "sg-${var.solution}-${var.prefix}-${each.value}-01"
+  display_name = "sg-${var.env}-${var.prefix}-${var.solution}-${each.value}-01"
   security_enabled = true
 }
