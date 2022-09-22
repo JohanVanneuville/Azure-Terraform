@@ -48,6 +48,26 @@ resource "azurerm_log_analytics_workspace" "law" {
     "Environment" = "Hub"
   }
 }
+resource "azurerm_monitor_diagnostic_setting" "law" {
+  name = "diag-law-${var.env}-${var.prefix}-01"
+  target_resource_id = azurerm_log_analytics_workspace.law.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+  log {
+    category = "Audit"
+    enabled  = true
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  metric {
+    category = "AllMetrics"
+
+    retention_policy {
+      enabled = true
+    }
+  }
+}
 resource "azurerm_log_analytics_solution" "solutions" {
   provider = azurerm.hub
   for_each = local.solution_name
