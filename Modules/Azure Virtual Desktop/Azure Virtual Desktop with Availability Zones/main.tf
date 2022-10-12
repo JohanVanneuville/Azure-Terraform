@@ -280,7 +280,12 @@ resource "azurerm_windows_virtual_machine" "vm" {
     caching = "ReadWrite"
     storage_account_type = "Premium_LRS"
   }
-
+ tags = {
+    "Environment" = "prd"
+    "Solution" = "Shared"
+    "Costcenter" = "IT"
+    "solution" = "Avd session host"
+  }
   
     provision_vm_agent = true
   
