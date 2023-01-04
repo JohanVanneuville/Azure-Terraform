@@ -53,6 +53,48 @@ resource "azurerm_public_ip" "pip" {
   resource_group_name = data.azurerm_virtual_network.hub.resource_group_name
 
   allocation_method = "Dynamic"
+  tags = {
+    "Critical"    = "Yes"
+    "Solution"    = "Public IP VPNG"
+    "Costcenter"  = "It"
+    "Location"    = "We"
+  }
+}
+resource "azurerm_monitor_diagnostic_setting" "vpng-pip-diag" {
+  provider = azurerm.hub
+  name = "diag-pip-${var.prefix}-vpng"
+  target_resource_id = azurerm_public_ip.pip.id
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.law.id
+  log {
+    category = "DDoSProtectionNotifications"
+    enabled  = true
+
+    retention_policy {
+      enabled = true
+    }
+   
+  }
+  log {
+    category = "DDoSMitigationFlowLogs"
+    enabled = true
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  log {
+    category = "DDoSMitigationReports"
+    enabled =true
+  }
+
+  metric {
+    category = "AllMetrics"
+
+    retention_policy {
+      enabled = true
+    }
+  }
+  
 }
 
 resource "azurerm_virtual_network_gateway" "gateway" {
@@ -66,6 +108,12 @@ resource "azurerm_virtual_network_gateway" "gateway" {
   active_active = false
   enable_bgp    = false
   sku           = "VpnGw1"
+  tags = {
+    "Critical"    = "Yes"
+    "Solution"    = "VPN Gateway"
+    "Costcenter"  = "It"
+    "Location"    = "We"
+  }
 
   ip_configuration {
     name                          = "vnetGatewayConfig"
