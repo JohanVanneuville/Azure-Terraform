@@ -51,7 +51,7 @@ data "azurerm_subscription" "current" {}
 
 resource "azapi_resource" "network-manager" {
   type = "Microsoft.Network/networkManagers@2022-07-01"
-  name = "vnw-hub-jvn-01"
+  name = "vnm-hub-jvn-01"
   location = "westeurope"
   parent_id = "/subscriptions/Your sub id/resourceGroups/rg-hub-jvn-networking-01"
   tags = {
