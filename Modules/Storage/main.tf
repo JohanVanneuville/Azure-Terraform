@@ -1,3 +1,7 @@
+##Change the vairables to fit your needs
+##The script is provided without any warranties
+##For AADKERB to work you need the Azurerm provider version 3.41.0
+
 terraform {
   required_providers {
     azurerm = {
